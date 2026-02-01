@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Mini NOC - Devices Configuration</title>
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+  >
+  <style>
+    body {
+      background-color: #020617;
+      color: #e5e7eb;
+    }
+    .card-custom {
+      background-color: #0f172a;
+      border-radius: 1rem;
+      border: 1px solid #1f2937;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+    .table-dark th, .table-dark td {
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body class="p-4">
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Mini NOC - Devices</h1>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-light">
+      ← Back to Dashboard
+    </a>
+  </div>
+
+  {% if message %}
+    <div class="alert alert-info">
+      {{ message }}
+    </div>
+  {% endif %}
+
+  <!-- Existing devices list -->
+  <div class="card card-custom mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Configured Devices (devices.yaml)</h5>
+      <table class="table table-dark table-hover mb-0">
+        <thead>
+        <tr>
+          <th>Name</th>
+          <th>IP</th>
+          <th>Enabled</th>
+          <th>SSH</th>
+          <th>Telnet</th>
+          <th>Actions</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% if devices %}
+          {% for d in devices %}
+            <tr>
+              <td>{{ d.name }}</td>
+              <td>{{ d.ip }}</td>
+              <td>{{ 'Yes' if d.enabled else 'No' }}</td>
+              <td>
+                {% if d.ssh_enabled %}
+                  {{ d.ssh_user or 'user' }}@{{ d.ip }}:{{ d.ssh_port }}
+                {% else %}
+                  <span class="text-muted">Disabled</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if d.telnet_enabled %}
+                  {{ d.ip }}:{{ d.telnet_port }}
+                {% else %}
+                  <span class="text-muted">Disabled</span>
+                {% endif %}
+              </td>
+              <td>
+                <!-- Delete device form -->
+                <form method="post"
+                      action="{{ url_for('devices_page') }}"
+                      onsubmit="return confirm('Delete this device?');">
+                  <input type="hidden" name="form_type" value="delete">
+                  <input type="hidden" name="ip" value="{{ d.ip }}">
+                  <button type="submit" class="btn btn-sm btn-danger">
+                    Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" class="text-center text-muted">No devices configured yet.</td>
+          </tr>
+        {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add new device form -->
+  <div class="card card-custom">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Add New Device</h5>
+      <form method="post" action="{{ url_for('devices_page') }}">
+        <!-- identify this as "add" form -->
+        <input type="hidden" name="form_type" value="add">
+
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Device Name *</label>
+            <input type="text" class="form-control" name="name" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">IP Address *</label>
+            <input type="text" class="form-control" name="ip" placeholder="192.168.58.10" required>
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="enabled" id="enabled" checked>
+              <label class="form-check-label" for="enabled">Enabled</label>
+            </div>
+          </div>
+        </div>
+
+        <hr class="border-secondary my-3">
+
+        <div class="row g-3">
+          <div class="col-md-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="ssh_enabled" id="ssh_enabled" checked>
+              <label class="form-check-label" for="ssh_enabled">SSH Enabled</label>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">SSH User</label>
+            <input type="text" class="form-control" name="ssh_user" placeholder="admin">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">SSH Port</label>
+            <input type="number" class="form-control" name="ssh_port" value="22">
+          </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+          <div class="col-md-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="telnet_enabled" id="telnet_enabled">
+              <label class="form-check-label" for="telnet_enabled">Telnet Enabled</label>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Telnet Port</label>
+            <input type="number" class="form-control" name="telnet_port" value="23">
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <button type="submit" class="btn btn-primary">Add Device</button>
+          <p class="mt-2 text-muted" style="font-size: 0.85rem;">
+            Monitoring will start automatically in the next health cycle (around 30 seconds).
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

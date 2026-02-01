@@ -1,0 +1,792 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>TheSecureHub Monitor – Live Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      background: #05071a;
+      color: #f8f9ff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 20px;
+    }
+
+    .app {
+      width: 1200px;
+      background: #05071a;
+      border-radius: 18px;
+    }
+
+    /* Top header (buttons) */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .top-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .page-switch {
+      display: flex;
+      gap: 10px;
+    }
+
+    .page-btn {
+      border: none;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: #10163a;
+      color: #d0d4ff;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .page-btn.active {
+      background: #4c6fff;
+      color: #fff;
+    }
+
+    .timestamp {
+      font-size: 12px;
+      color: #8a92c4;
+    }
+
+    /* Dashboard frame */
+    .dashboard-frame {
+      background: #0c1131;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 10px 35px rgba(0,0,0,0.6);
+      border: 1px solid #181d45;
+    }
+
+    /* GRID */
+    #page1 {
+      display: grid;
+      grid-template-columns: 260px 310px 1fr;
+      grid-template-rows: auto auto;
+      gap: 12px;
+    }
+
+    #page2 {
+      display: none;
+      grid-template-columns: 260px 260px 260px 1fr;
+      grid-template-rows: auto 220px;
+      gap: 12px;
+    }
+
+    .card {
+      background: #11163d;
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid #202554;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #a6addf;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .card-header span.value {
+      font-size: 12px;
+      color: #f0f3ff;
+      text-transform: none;
+    }
+
+    .big-number {
+      font-size: 30px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .subtext {
+      font-size: 12px;
+      color: #9aa1d9;
+    }
+
+    .pill-alert {
+      position: absolute;
+      right: 10px;
+      top: 34px;
+      background: #ff4b5c;
+      color: white;
+      border-radius: 999px;
+      font-size: 10px;
+      padding: 2px 7px;
+    }
+
+    .list-rows {
+      margin-top: 6px;
+      font-size: 12px;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+
+    .row-line {
+      display: flex;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .row-line:last-child {
+      border-bottom: none;
+    }
+
+    .row-line span.label {
+      color: #d5daff;
+    }
+
+    .row-line span.value {
+      color: #9aa1d9;
+    }
+
+    .flex {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .small {
+      font-size: 11px;
+      color: #8b93ce;
+    }
+
+    .progress-bar-bg {
+      width: 100%;
+      height: 7px;
+      border-radius: 999px;
+      background: #1c224d;
+      margin-top: 6px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #4c6fff, #6affd9);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    .chart-container {
+      margin-top: 10px;
+      height: 150px;
+    }
+
+    .chart-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .table th,
+    .table td {
+      padding: 4px 0;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    .status-up   { background:#22c55e; }
+    .status-down { background:#ef4444; }
+    .status-unk  { background:#9ca3af; }
+
+    /* Second page extras */
+    .stats-big {
+      font-size: 32px;
+      font-weight: 600;
+    }
+    .two-line {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #b0b7f0;
+    }
+    .rating-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      font-size: 12px;
+    }
+    .stars {
+      font-size: 12px;
+      color: #ffd457;
+      margin-right: 4px;
+    }
+    .rating-msg {
+      color: #e1e4ff;
+      margin-left: 4px;
+    }
+    .time {
+      color: #848bc4;
+      font-size: 11px;
+    }
+    .badge-status {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      background: #1c224d;
+      color: #cfd4ff;
+    }
+
+    /* Footer */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 10px;
+      font-size: 11px;
+      color: #8a92c4;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-logo {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      background: #01c26f;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #05071a;
+    }
+
+    a.btn-link {
+      color:#c4d0ff;
+      text-decoration:none;
+      font-size:12px;
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="top-bar">
+    <div class="top-title">TheSecurehub MiniNoc – Live Dashboard</div>
+    <div class="page-switch">
+      <button class="page-btn active" data-target="page1">Network Health</button>
+      <button class="page-btn" data-target="page2">Incidents & Insights</button>
+    </div>
+    <div class="timestamp">
+      Last server render: {{ generated_at }} &nbsp;|&nbsp;
+      <span id="liveTime"></span>
+    </div>
+  </div>
+
+  <div class="dashboard-frame">
+    <!-- PAGE 1 -->
+    <div id="page1">
+      <!-- LEFT: Devices by status -->
+      <div class="card">
+        <div class="card-header">
+          <span>Devices by status</span>
+          <span class="value" id="totalDevicesLabel">Total: 0</span>
+        </div>
+        <div class="list-rows" id="statusList">
+          <!-- JS will inject device status lines -->
+        </div>
+      </div>
+
+      <!-- MIDDLE: Overall health + small cards -->
+      <div class="grid" style="display:grid;grid-template-rows: 180px 120px 120px;gap:12px;">
+        <!-- Network health gauge -->
+        <div class="card">
+          <div class="card-header">
+            <span>Network health</span>
+            <span class="value" id="healthLabel">Calculating...</span>
+          </div>
+          <div class="big-number" id="upPercentNumber">0%</div>
+          <div class="subtext">Devices currently reachable</div>
+          <div class="pill-alert" id="alertBadge" style="display:none;">Issues</div>
+
+          <div class="flex" style="margin-top:12px;">
+            <div style="flex:1;">
+              <div class="small">UP / DOWN / UNKNOWN</div>
+              <div class="chart-container">
+                <canvas id="healthGauge"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Utilisation (simply % devices UP) -->
+        <div class="card">
+          <div class="card-header">
+            <span>Availability</span>
+            <span class="value" id="availLabel">0% UP</span>
+          </div>
+          <div class="subtext">Based on device reachability</div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" id="availBar"></div>
+          </div>
+        </div>
+
+        <!-- Quick link to devices page -->
+        <div class="card">
+          <div class="card-header">
+            <span>Inventory</span>
+          </div>
+          <div class="subtext">Add / remove devices, SSH & Telnet helpers</div>
+          <div style="margin-top:8px;">
+            <a href="{{ url_for('devices_page') }}" class="btn-link">
+              → Open Devices Configuration Page
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Devices table -->
+      <div class="grid" style="display:grid;grid-template-rows: 1fr 0;">
+        <div class="card">
+          <div class="card-header">
+            <span>Devices inventory</span>
+            <span class="value">Live from /api/status</span>
+          </div>
+          <table class="table">
+            <thead>
+            <tr>
+              <th>Device</th>
+              <th>IP</th>
+              <th>Status</th>
+              <th>Last change</th>
+              <th>Last check</th>
+            </tr>
+            </thead>
+            <tbody id="devicesTableBody">
+            <!-- JS will populate -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PAGE 2 – simple incident view (DOWN devices) -->
+    <div id="page2">
+      <!-- Live incidents -->
+      <div class="card">
+        <div class="card-header">
+          <span>Live incidents</span>
+        </div>
+        <div class="stats-big" id="downCountBig">0</div>
+        <div class="two-line">Devices DOWN</div>
+        <div style="margin-top:16px;">
+          <div class="stats-big" id="unknownCountBig" style="font-size:26px;">0</div>
+          <div class="two-line">Unknown / Not yet checked</div>
+        </div>
+      </div>
+
+      <!-- Recovery counter (UP again last 10 min – future: from metrics/logs) -->
+      <div class="card">
+        <div class="card-header">
+          <span>Recoveries (session)</span>
+        </div>
+        <div class="stats-big" id="recoveryPlaceholder" style="font-size:26px;">—</div>
+        <div class="two-line">Use Telegram history to see flips</div>
+      </div>
+
+      <!-- Simple CSAT-style "network experience" (just derived from UP%) -->
+      <div class="card">
+        <div class="card-header">
+          <span>Network score</span>
+        </div>
+        <div class="big-number" id="scoreNumber" style="margin-top:12px;">0</div>
+        <div class="subtext">Score = devices UP %</div>
+        <div class="pill-alert" id="scoreAlert" style="display:none;">Low</div>
+      </div>
+
+      <!-- Gauge chart re-used for score -->
+      <div class="card">
+        <div class="card-header">
+          <span>Score gauge</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="scoreGauge"></canvas>
+        </div>
+      </div>
+
+      <!-- Timeline chart placeholder (future: from metrics) -->
+      <div class="card" style="grid-column: 1 / 3;">
+        <div class="card-header">
+          <span>UP vs DOWN (last refreshes)</span>
+          <span class="value">Session only</span>
+        </div>
+        <div class="chart-container">
+          <canvas id="historyLine"></canvas>
+        </div>
+      </div>
+
+      <!-- DOWN devices list -->
+      <div class="card">
+        <div class="card-header">
+          <span>Current DOWN devices</span>
+        </div>
+        <div id="downList">
+          <!-- JS fills -->
+        </div>
+      </div>
+
+      <!-- Agent-style table reused as raw device table -->
+      <div class="card">
+        <div class="card-header">
+          <span>Raw device view</span>
+        </div>
+        <table class="table">
+          <thead>
+          <tr><th>Device</th><th>Status</th></tr>
+          </thead>
+          <tbody id="simpleStatusTable">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="brand">
+      <div class="brand-logo">N</div>
+      <span>Network Troubleshooter – Mini NOC</span>
+    </div>
+    <div>Developed by Faraj sayyad </div>
+  </div>
+</div>
+
+<script>
+  // ---------- PAGE SWITCH ----------
+  const buttons = document.querySelectorAll('.page-btn');
+  const page1 = document.getElementById('page1');
+  const page2 = document.getElementById('page2');
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const target = btn.dataset.target;
+      if (target === 'page1') {
+        page1.style.display = 'grid';
+        page2.style.display = 'none';
+      } else {
+        page1.style.display = 'none';
+        page2.style.display = 'grid';
+      }
+    });
+  });
+
+  // ---------- LIVE CLOCK ----------
+  function updateClock() {
+    const el = document.getElementById('liveTime');
+    const now = new Date();
+    el.textContent = 'Browser time: ' + now.toLocaleString();
+  }
+  setInterval(updateClock, 1000);
+  updateClock();
+
+  // ---------- CHARTS SETUP ----------
+  let healthGaugeChart;
+  let scoreGaugeChart;
+  let historyLineChart;
+
+  const healthCtx = document.getElementById('healthGauge');
+  const scoreCtx = document.getElementById('scoreGauge');
+  const historyCtx = document.getElementById('historyLine');
+
+  // Keep small history in memory (session only)
+  const historyData = {
+    labels: [],
+    up: [],
+    down: []
+  };
+
+  function createCharts() {
+    healthGaugeChart = new Chart(healthCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['UP', 'DOWN', 'UNKNOWN'],
+        datasets: [{
+          data: [0, 0, 0],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: '70%',
+        rotation: -90 * Math.PI / 180,
+        circumference: 180 * Math.PI / 180,
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: true }
+        }
+      }
+    });
+
+    scoreGaugeChart = new Chart(scoreCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Score', 'Remaining'],
+        datasets: [{
+          data: [0, 100],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: '70%',
+        rotation: -90 * Math.PI / 180,
+        circumference: 180 * Math.PI / 180,
+        plugins: {
+          legend: { display: false },
+          tooltip: { enabled: false }
+        }
+      }
+    });
+
+    historyLineChart = new Chart(historyCtx, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'UP',
+            data: [],
+            borderWidth: 2,
+            tension: 0.35,
+            pointRadius: 2
+          },
+          {
+            label: 'DOWN',
+            data: [],
+            borderWidth: 2,
+            borderDash: [4,4],
+            tension: 0.35,
+            pointRadius: 2
+          }
+        ]
+      },
+      options: {
+        plugins: {
+          legend: { display: true, labels: { boxWidth: 10, font: { size: 9 } } }
+        },
+        scales: {
+          x: { grid: { display: false } },
+          y: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  createCharts();
+
+  // ---------- DATA FETCH + UI UPDATE ----------
+
+  async function fetchStatus() {
+    try {
+      const res = await fetch('/api/status');
+      const json = await res.json();
+      const devices = json.devices || [];
+
+      const total = devices.length;
+      const upDevices = devices.filter(d => d.status === 'UP');
+      const downDevices = devices.filter(d => d.status === 'DOWN');
+      const unknownDevices = devices.filter(d => d.status !== 'UP' && d.status !== 'DOWN');
+
+      const up = upDevices.length;
+      const down = downDevices.length;
+      const unknown = unknownDevices.length;
+
+      // ---- TOP NUMBERS ----
+      document.getElementById('totalDevicesLabel').textContent = `Total: ${total}`;
+      const upPercent = total > 0 ? Math.round((up / total) * 100) : 0;
+      document.getElementById('upPercentNumber').textContent = upPercent + '%';
+      document.getElementById('healthLabel').textContent =
+        down > 0 ? 'Issues detected' : 'All good';
+      document.getElementById('availLabel').textContent = `${upPercent}% UP`;
+
+      const availBar = document.getElementById('availBar');
+      availBar.style.width = upPercent + '%';
+
+      const alertBadge = document.getElementById('alertBadge');
+      alertBadge.style.display = down > 0 ? 'inline-block' : 'none';
+
+      // ---- LEFT SIDE LIST (devices by status) ----
+      const listEl = document.getElementById('statusList');
+      listEl.innerHTML = '';
+      devices.forEach(d => {
+        const row = document.createElement('div');
+        row.className = 'row-line';
+        const label = document.createElement('span');
+        label.className = 'label';
+        const dot = document.createElement('span');
+        dot.className = 'status-dot ' + (
+          d.status === 'UP' ? 'status-up' :
+          d.status === 'DOWN' ? 'status-down' : 'status-unk'
+        );
+        label.appendChild(dot);
+        label.appendChild(document.createTextNode(d.name || d.ip));
+
+        const value = document.createElement('span');
+        value.className = 'value';
+        value.textContent = d.status;
+
+        row.appendChild(label);
+        row.appendChild(value);
+        listEl.appendChild(row);
+      });
+
+      // ---- TABLE ON RIGHT ----
+      const tbody = document.getElementById('devicesTableBody');
+      tbody.innerHTML = '';
+      devices.forEach(d => {
+        const tr = document.createElement('tr');
+
+        const tdName = document.createElement('td');
+        tdName.textContent = d.name || '';
+        const tdIp = document.createElement('td');
+        tdIp.textContent = d.ip || '';
+
+        const tdStatus = document.createElement('td');
+        const span = document.createElement('span');
+        span.className = 'status-dot ' + (
+          d.status === 'UP' ? 'status-up' :
+          d.status === 'DOWN' ? 'status-down' : 'status-unk'
+        );
+        tdStatus.appendChild(span);
+        tdStatus.appendChild(document.createTextNode(d.status));
+
+        const tdLastChange = document.createElement('td');
+        tdLastChange.textContent = d.last_change || '';
+        const tdLastChecked = document.createElement('td');
+        tdLastChecked.textContent = d.last_checked || '';
+
+        tr.appendChild(tdName);
+        tr.appendChild(tdIp);
+        tr.appendChild(tdStatus);
+        tr.appendChild(tdLastChange);
+        tr.appendChild(tdLastChecked);
+        tbody.appendChild(tr);
+      });
+
+      // ---- HEALTH DOUGHNUT UPDATE ----
+      healthGaugeChart.data.datasets[0].data = [up, down, unknown];
+      healthGaugeChart.update();
+
+      // ---- PAGE2: INCIDENTS ----
+      document.getElementById('downCountBig').textContent = down;
+      document.getElementById('unknownCountBig').textContent = unknown;
+
+      const scoreNumber = document.getElementById('scoreNumber');
+      const scoreAlert = document.getElementById('scoreAlert');
+      scoreNumber.textContent = upPercent;
+      scoreAlert.style.display = upPercent < 80 ? 'inline-block' : 'none';
+
+      // Score gauge
+      scoreGaugeChart.data.datasets[0].data = [upPercent, 100 - upPercent];
+      scoreGaugeChart.update();
+
+      // DOWN list
+      const downList = document.getElementById('downList');
+      downList.innerHTML = '';
+      if (downDevices.length === 0) {
+        downList.innerHTML = '<div class="subtext">No devices DOWN 🎉</div>';
+      } else {
+        downDevices.forEach(d => {
+          const div = document.createElement('div');
+          div.className = 'rating-row';
+          const left = document.createElement('div');
+          left.innerHTML = `<span class="stars">⚠️</span><span class="rating-msg">${d.name || d.ip}</span>`;
+          const right = document.createElement('div');
+          right.className = 'time';
+          right.textContent = d.last_change || '';
+          div.appendChild(left);
+          div.appendChild(right);
+          downList.appendChild(div);
+        });
+      }
+
+      // Simple status table
+      const simpleTable = document.getElementById('simpleStatusTable');
+      simpleTable.innerHTML = '';
+      devices.forEach(d => {
+        const tr = document.createElement('tr');
+        const tdA = document.createElement('td');
+        tdA.textContent = d.name || d.ip;
+        const tdB = document.createElement('td');
+        const span = document.createElement('span');
+        span.className = 'badge-status';
+        span.textContent = d.status;
+        tdB.appendChild(span);
+        tr.appendChild(tdA);
+        tr.appendChild(tdB);
+        simpleTable.appendChild(tr);
+      });
+
+      // ---- HISTORY CHART (UP/DOWN PER REFRESH) ----
+      const nowLabel = new Date().toLocaleTimeString();
+      historyData.labels.push(nowLabel);
+      historyData.up.push(up);
+      historyData.down.push(down);
+
+      // keep last 10 points
+      if (historyData.labels.length > 10) {
+        historyData.labels.shift();
+        historyData.up.shift();
+        historyData.down.shift();
+      }
+      historyLineChart.data.labels = historyData.labels;
+      historyLineChart.data.datasets[0].data = historyData.up;
+      historyLineChart.data.datasets[1].data = historyData.down;
+      historyLineChart.update();
+
+    } catch (err) {
+      console.error('Error fetching /api/status:', err);
+    }
+  }
+
+  // First load immediately, then every 1 seconds
+  fetchStatus();
+  setInterval(fetchStatus, 1000);
+</script>
+</body>
+</html>
