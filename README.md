@@ -18,6 +18,23 @@ and sends **Telegram alerts** when a device goes DOWN or recovers.
 
 ---
 
+
+
+## 📸 Project Output Screenshots
+
+### 🔹 Live Dashboard
+![Live Dashboard](screenshots/dashboard.png)
+
+### 🔹 Devices Management Page
+![Devices Page](screenshots/devices_page.png)
+
+### 🔹 Device Down Alert
+![Down Alert](screenshots/down_alert.png)
+
+
+
+---
+
 ## 🧱 Project Structure
 
 ```
