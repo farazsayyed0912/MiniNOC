@@ -1,4 +1,4 @@
-# 📡 MiniNOC – AI Network Health Monitoring Dashboard
+# 📡 MiniNOC – Network Health Monitoring Dashboard
 
 MiniNOC is a lightweight **Network Operations Center (NOC)** style monitoring tool built using **Python + Flask**.
 It continuously monitors network devices using **ICMP ping**, displays real-time status on a **web dashboard**,
